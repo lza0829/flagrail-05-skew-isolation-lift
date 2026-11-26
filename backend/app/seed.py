@@ -32,7 +32,11 @@ CREATE TABLE IF NOT EXISTS 下发票 (
   状态 TEXT NOT NULL DEFAULT '待下发',
   下发时 TEXT NOT NULL DEFAULT '',
   世代 INTEGER NOT NULL DEFAULT 1,
-  说明 TEXT NOT NULL DEFAULT ''
+  说明 TEXT NOT NULL DEFAULT '',
+  隔离集合 TEXT NOT NULL DEFAULT '[]',
+  放量集 TEXT NOT NULL DEFAULT '[]',
+  最近核证 TEXT NOT NULL DEFAULT '{}',
+  放量时 TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS 回读证 (
   证号 TEXT PRIMARY KEY,
@@ -87,7 +91,9 @@ def 初始化库() -> None:
             "子方向": "中间件",
             "默认灰度比": "10",
             "回读齐套策略": "全边缘确认才可晋升",
-            "骨架": "开关版本入轨→分桶灰度下发→回读确认→失效/回滚互证",
+            "偏差放量口径": "隔离放行其余：确认集放量，偏差集进隔离集合",
+            "放量口径": "隔离放行其余",
+            "骨架": "开关版本入轨→分桶灰度下发→回读确认→偏差隔离/放量→失效/回滚互证",
         }.items():
             conn.execute("INSERT INTO 站规(键, 值) VALUES (?, ?)", (k, v))
     for name in [
@@ -95,10 +101,25 @@ def 初始化库() -> None:
         "双版本同键并发", "回读偏差拒升全量", "环境桶隔离", "失效后幽灵回读",
         "下发票幂等键", "回滚窗互斥", "变体载荷契约", "边缘时钟漂移",
         "分桶重切", "全量晋升闸", "影子轨对照", "配置世代戳",
-        "回读仲裁策略", "失效写闸", "跨环境串扰", "轨贯验三联",
+        "回读仲裁策略", "失效写闸", "跨环境串扰", "轨贯验三联", "偏差隔离升",
     ]:
         conn.execute(
             "INSERT OR IGNORE INTO 空桩(名, 状态) VALUES (?, '空桩')", (name,)
+        )
+    conn.execute(
+        "INSERT OR REPLACE INTO 空桩(名, 状态) VALUES (?, ?)",
+        ("偏差隔离升", "已落地·隔离放行其余"),
+    )
+    # 旧库补新表/新列；新库也用它创建偏差隔离实体。
+    from app.modules.偏差隔离升 import 确保结构 as 确保偏差隔离结构
+
+    确保偏差隔离结构(conn)
+    for key, value in {
+        "偏差放量口径": "隔离放行其余：确认集放量，偏差集进隔离集合",
+        "放量口径": "隔离放行其余",
+    }.items():
+        conn.execute(
+            "INSERT OR IGNORE INTO 站规(键, 值) VALUES (?, ?)", (key, value)
         )
     conn.commit()
     conn.close()

@@ -292,7 +292,25 @@ td code, .mono {
 }
 .徽章.通 { background: var(--通底); color: var(--通) }
 .徽章.败 { background: var(--败底); color: var(--败) }
+.徽章.警 { background: var(--警底); color: var(--警) }
 .徽章.信 { background: var(--信底); color: var(--信) }
+.隔离集卡 {
+  border: 1px solid var(--线弱);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: rgba(255,255,255,0.55);
+}
+.隔离集卡.败 { border-color: rgba(179,58,58,0.35); background: var(--败底) }
+.隔离集卡.警 { border-color: rgba(196,92,42,0.35); background: var(--警底) }
+.签行 { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.55rem }
+.空签 { color: var(--淡); font-family: "IBM Plex Mono", monospace }
+input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--线);
+  border-radius: 6px;
+  background: white;
+  color: var(--墨);
+}
 
 @keyframes brand-in {
   from { opacity: 0; letter-spacing: 0.4em; transform: translateY(8px) }

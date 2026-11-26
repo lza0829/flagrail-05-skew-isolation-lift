@@ -47,7 +47,11 @@ def 失效版本(体: dict) -> dict:
             raise HTTPException(400, f"版本不存在:{版本键}")
         conn.execute("UPDATE 开关版本 SET 状态='已失效' WHERE 版本键=?", (版本键,))
         conn.execute(
-            "UPDATE 下发票 SET 状态='已失效' WHERE 版本键=? AND 状态='已下发'",
+            """
+            UPDATE 下发票
+            SET 状态='已失效'
+            WHERE 版本键=? AND 状态 NOT IN ('已回滚', '已失效')
+            """,
             (版本键,),
         )
         conn.execute(

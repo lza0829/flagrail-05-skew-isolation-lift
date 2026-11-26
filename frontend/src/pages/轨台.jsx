@@ -64,6 +64,10 @@ export default function 轨台() {
           </span>
           <span>
             <i>05</i>
+            <b>{概.隔离边缘 || 0}</b>隔离边缘
+          </span>
+          <span>
+            <i>06</i>
             <b>{概.命运条}</b>命运
           </span>
         </div>

@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from app.db import 连接
+from app.modules import 偏差隔离升 as 偏差域
 from fastapi import HTTPException
 
 
@@ -12,6 +13,7 @@ def 此刻() -> str:
 def 下一票(体: dict) -> dict:
     conn = 连接()
     try:
+        偏差域.确保结构(conn)
         版本键 = 体["版本键"]
         桶键 = 体["桶键"]
         票号 = 体.get("票号") or f"票-{版本键}-{桶键}"
@@ -26,8 +28,15 @@ def 下一票(体: dict) -> dict:
         if bucket["开关键"] != ver["开关键"]:
             raise HTTPException(400, "分桶开关键与版本不一致")
         已 = conn.execute("SELECT * FROM 下发票 WHERE 票号=?", (票号,)).fetchone()
-        if 已 and 已["状态"] == "已下发":
-            return {"票号": 票号, "状态": "已下发", "幂等": True}
+        活动票态 = {"已下发", "回滚中", "隔离中", "偏差待处置", "部分放量", "待全量放量", "已放量"}
+        if 已 and 已["状态"] in 活动票态:
+            # 重复下发/夹具重放不能把已隔离或已部分放量的票打回「已下发」。
+            return {
+                "票号": 票号,
+                "状态": 已["状态"],
+                "幂等": True,
+                "隔离集合": 偏差域.loads(已["隔离集合"], []) if "隔离集合" in 已.keys() else [],
+            }
         conn.execute(
             """INSERT INTO 下发票(票号, 开关键, 版本键, 桶键, 状态, 下发时, 世代, 说明)
                VALUES (?,?,?,?,?,?,?,?)
